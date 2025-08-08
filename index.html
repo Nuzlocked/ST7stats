@@ -268,6 +268,26 @@
             margin-top: 20px;
         }
 
+        /* Dot Plot Controls */
+        .dot-plot-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .axis-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .axis-selector label {
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
         /* Player Cards Section */
         .players-section h2 {
             color: var(--text-primary);
@@ -443,6 +463,30 @@
             </div>
         </div>
 
+        <!-- Dot Plot Section -->
+        <div class="chart-section">
+            <div class="chart-controls">
+                <h2><i class="fas fa-project-diagram"></i> Player Comparison Dot Plot</h2>
+                <div class="dot-plot-controls">
+                    <div class="axis-selector">
+                        <label for="xAxisSelector">X-Axis:</label>
+                        <select class="field-selector" id="xAxisSelector">
+                            <!-- Options will be dynamically generated -->
+                        </select>
+                    </div>
+                    <div class="axis-selector">
+                        <label for="yAxisSelector">Y-Axis:</label>
+                        <select class="field-selector" id="yAxisSelector">
+                            <!-- Options will be dynamically generated -->
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="dotPlotChart"></canvas>
+            </div>
+        </div>
+
         <!-- Player Performance Cards -->
         <div class="players-section">
             <h2><i class="fas fa-users"></i> Player Performance Cards</h2>
@@ -465,7 +509,7 @@
                 "Total Fossils": 3831,
                 "Total Alphas": 134,
                 "Total Myst Balls": 0,
-                "Total Shiny Charms popped": 475,
+                "Total Shiny Charms popped": 400,
                 "Total Money Spent": 550000000
             },
             {
@@ -863,6 +907,11 @@
         let currentField = 'Total Shinies';
         let isDescending = true;
 
+        // Dot plot variables
+        let dotPlotChart = null;
+        let currentXField = 'Total Hours';
+        let currentYField = 'Total Shinies';
+
         // Format large numbers
         function formatNumber(num) {
             if (num >= 1000000000) {
@@ -949,6 +998,168 @@
                 option.textContent = config.name;
                 if (field === currentField) option.selected = true;
                 selector.appendChild(option);
+            });
+        }
+
+        // Generate axis selector options for dot plot
+        function generateAxisSelectors() {
+            const xSelector = document.getElementById('xAxisSelector');
+            const ySelector = document.getElementById('yAxisSelector');
+            
+            // Clear existing options
+            xSelector.innerHTML = '';
+            ySelector.innerHTML = '';
+            
+            // Get all available fields
+            const allFields = { ...fieldMappings, ...chartOnlyFields };
+            
+            Object.entries(allFields).forEach(([field, config]) => {
+                // X-axis options
+                const xOption = document.createElement('option');
+                xOption.value = field;
+                xOption.textContent = config.name;
+                if (field === currentXField) xOption.selected = true;
+                xSelector.appendChild(xOption);
+                
+                // Y-axis options
+                const yOption = document.createElement('option');
+                yOption.value = field;
+                yOption.textContent = config.name;
+                if (field === currentYField) yOption.selected = true;
+                ySelector.appendChild(yOption);
+            });
+        }
+
+        // Get field value with calculated fields support
+        function getFieldValue(player, field) {
+            if (field === 'Shiny Average') {
+                return player['Total Shinies'] > 0 ? 
+                    Math.round(player['Total Encounters'] / player['Total Shinies']) : 0;
+            }
+            return player[field];
+        }
+
+        // Update dot plot
+        function updateDotPlot() {
+            const ctx = document.getElementById('dotPlotChart').getContext('2d');
+
+            // Prepare data points
+            const dataPoints = playersData.map((player, index) => {
+                const hue = (index * 360 / playersData.length) % 360;
+                return {
+                    x: getFieldValue(player, currentXField),
+                    y: getFieldValue(player, currentYField),
+                    player: player.Username,
+                    backgroundColor: `hsla(${hue}, 70%, 60%, 0.8)`,
+                    borderColor: `hsla(${hue}, 70%, 60%, 1)`
+                };
+            });
+
+            if (dotPlotChart) {
+                dotPlotChart.destroy();
+            }
+
+            const allFields = { ...fieldMappings, ...chartOnlyFields };
+            const xFieldConfig = allFields[currentXField];
+            const yFieldConfig = allFields[currentYField];
+
+            dotPlotChart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Players',
+                        data: dataPoints,
+                        backgroundColor: dataPoints.map(point => point.backgroundColor),
+                        borderColor: dataPoints.map(point => point.borderColor),
+                        borderWidth: 2,
+                        pointRadius: 8,
+                        pointHoverRadius: 10,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: 'white',
+                            bodyColor: 'white',
+                            borderColor: 'rgba(255, 255, 255, 0.2)',
+                            borderWidth: 1,
+                            cornerRadius: 10,
+                            callbacks: {
+                                title: function(context) {
+                                    return context[0].raw.player;
+                                },
+                                label: function(context) {
+                                    const xValue = currentXField === 'Total Money Spent' ? 
+                                        '$' + formatNumber(context.parsed.x) : formatNumber(context.parsed.x);
+                                    const yValue = currentYField === 'Total Money Spent' ? 
+                                        '$' + formatNumber(context.parsed.y) : formatNumber(context.parsed.y);
+                                    
+                                    return [
+                                        `${xFieldConfig.name}: ${xValue}`,
+                                        `${yFieldConfig.name}: ${yValue}`
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                            title: {
+                                display: true,
+                                text: xFieldConfig.name,
+                                color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim(),
+                                font: {
+                                    size: 14,
+                                    weight: 600
+                                }
+                            },
+                            grid: {
+                                color: getComputedStyle(document.documentElement).getPropertyValue('--chart-grid').trim()
+                            },
+                            ticks: {
+                                color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim(),
+                                callback: function(value) {
+                                    return currentXField === 'Total Money Spent' ? 
+                                        '$' + formatNumber(value) : formatNumber(value);
+                                }
+                            }
+                        },
+                        y: {
+                            type: 'linear',
+                            title: {
+                                display: true,
+                                text: yFieldConfig.name,
+                                color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim(),
+                                font: {
+                                    size: 14,
+                                    weight: 600
+                                }
+                            },
+                            grid: {
+                                color: getComputedStyle(document.documentElement).getPropertyValue('--chart-grid').trim()
+                            },
+                            ticks: {
+                                color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim(),
+                                callback: function(value) {
+                                    return currentYField === 'Total Money Spent' ? 
+                                        '$' + formatNumber(value) : formatNumber(value);
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeInOutQuart'
+                    }
+                }
             });
         }
 
@@ -1153,6 +1364,17 @@
             updateChart();
         });
 
+        // Dot plot event listeners
+        document.getElementById('xAxisSelector').addEventListener('change', function() {
+            currentXField = this.value;
+            updateDotPlot();
+        });
+
+        document.getElementById('yAxisSelector').addEventListener('change', function() {
+            currentYField = this.value;
+            updateDotPlot();
+        });
+
         // Theme Management
         function initializeTheme() {
             const savedTheme = localStorage.getItem('theme') || 'dark';
@@ -1182,15 +1404,25 @@
                     themeText.textContent = 'Light';
                 }
                 
-                // Update chart colors if chart exists
+                // Update chart colors if charts exist
+                const gridColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-grid').trim();
+                const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim();
+                
                 if (currentChart) {
-                    const gridColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-grid').trim();
-                    const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim();
-                    
                     currentChart.options.scales.y.grid.color = gridColor;
                     currentChart.options.scales.y.ticks.color = textColor;
                     currentChart.options.scales.x.ticks.color = textColor;
                     currentChart.update('none');
+                }
+                
+                if (dotPlotChart) {
+                    dotPlotChart.options.scales.x.grid.color = gridColor;
+                    dotPlotChart.options.scales.x.ticks.color = textColor;
+                    dotPlotChart.options.scales.x.title.color = textColor;
+                    dotPlotChart.options.scales.y.grid.color = gridColor;
+                    dotPlotChart.options.scales.y.ticks.color = textColor;
+                    dotPlotChart.options.scales.y.title.color = textColor;
+                    dotPlotChart.update('none');
                 }
             }
         }
@@ -1200,7 +1432,9 @@
             initializeTheme();
             generateOverallStats();
             generateFieldSelector();
+            generateAxisSelectors();
             updateChart();
+            updateDotPlot();
             generatePlayerCards();
         }
 
