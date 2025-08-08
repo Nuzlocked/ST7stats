@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPHEAL Team Seven Shiny Wars Data Analytics Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            /* Dark theme (default) */
+            --bg-primary: #000000;
+            --bg-secondary: rgba(45, 55, 72, 0.95);
+            --bg-card: rgba(45, 55, 72, 0.95);
+            --text-primary: #f7fafc;
+            --text-secondary: #e2e8f0;
+            --text-muted: #cbd5e0;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --grid-color: rgba(173, 216, 230, 0.3);
+            --shadow-color: rgba(0, 0, 0, 0.3);
+            --shadow-hover: rgba(0, 0, 0, 0.4);
+            --input-bg: #4a5568;
+            --input-border: #718096;
+            --chart-grid: rgba(255, 255, 255, 0.1);
+        }
+
+        [data-theme="light"] {
+            /* Light theme */
+            --bg-primary: #f7fafc;
+            --bg-secondary: rgba(255, 255, 255, 0.95);
+            --bg-card: rgba(255, 255, 255, 0.95);
+            --text-primary: #2d3748;
+            --text-secondary: #2d3748;
+            --text-muted: #718096;
+            --border-color: rgba(226, 232, 240, 0.8);
+            --grid-color: rgba(173, 216, 230, 0.2);
+            --shadow-color: rgba(0, 0, 0, 0.08);
+            --shadow-hover: rgba(0, 0, 0, 0.12);
+            --input-bg: #ffffff;
+            --input-border: #e2e8f0;
+            --chart-grid: rgba(0, 0, 0, 0.05);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            min-height: 100vh;
+            color: var(--text-secondary);
+            position: relative;
+            overflow-x: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Animated Grid Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50px;
+            left: -50px;
+            width: calc(100% + 100px);
+            height: calc(100% + 100px);
+            background-image: 
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 50px 50px;
+            z-index: -1;
+            animation: gridMove 4.5s linear infinite;
+            pointer-events: none;
+            transition: background-image 0.3s ease;
+        }
+
+        @keyframes gridMove {
+            0% {
+                transform: translate(0, 0);
+            }
+            100% {
+                transform: translate(50px, 50px);
+            }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: var(--text-primary);
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            border-radius: 50px;
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            box-shadow: 0 4px 16px var(--shadow-color);
+        }
+
+        .theme-toggle:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px var(--shadow-hover);
+        }
+
+        .theme-toggle i {
+            font-size: 1.1rem;
+            transition: transform 0.3s ease;
+        }
+
+        .theme-toggle:hover i {
+            transform: rotate(180deg);
+        }
+
+        /* Overall Stats Section */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 8px 32px var(--shadow-color);
+            border: 1px solid var(--border-color);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px var(--shadow-hover);
+        }
+
+        .stat-card .icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+
+        .stat-card .label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* Chart Section */
+        .chart-section {
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 40px;
+            box-shadow: 0 8px 32px var(--shadow-color);
+            border: 1px solid var(--border-color);
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .chart-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 30px;
+            align-items: center;
+        }
+
+        .chart-controls h2 {
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-right: 20px;
+        }
+
+        .field-selector {
+            padding: 12px 20px;
+            border: 2px solid var(--input-border);
+            border-radius: 10px;
+            background: var(--input-bg);
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 200px;
+        }
+
+        .field-selector:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .sort-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .sort-btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            background: #667eea;
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .sort-btn:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+
+        .sort-btn.active {
+            background: #4c51bf;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 500px;
+            margin-top: 20px;
+        }
+
+        /* Player Cards Section */
+        .players-section h2 {
+            color: var(--text-primary);
+            font-size: 2rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .players-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+        }
+
+        .player-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 32px var(--shadow-color);
+            border: 1px solid var(--border-color);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+        }
+
+        .player-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 45px var(--shadow-hover);
+        }
+
+                 .player-card .player-header {
+             text-align: center;
+             margin-bottom: 20px;
+             padding-bottom: 15px;
+             border-bottom: 2px solid var(--input-border);
+         }
+
+         .player-card .player-name {
+             font-size: 1.3rem;
+             font-weight: 600;
+             color: var(--text-secondary);
+         }
+
+        .player-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .player-stat {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+        }
+
+        .player-stat .stat-name {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .player-stat .stat-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .highlight-stat {
+            background: linear-gradient(45deg, #667eea20, #764ba220);
+            border-radius: 8px;
+            padding: 12px !important;
+            grid-column: 1 / -1;
+            margin: 10px 0;
+        }
+
+        .highlight-stat .stat-name {
+            color: #667eea !important;
+            font-weight: 600 !important;
+        }
+
+        .highlight-stat .stat-value {
+            color: #667eea !important;
+            font-size: 1.2rem !important;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 15px;
+            }
+
+            .chart-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .chart-controls h2 {
+                margin-right: 0;
+                margin-bottom: 10px;
+            }
+
+            .players-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .player-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <button class="theme-toggle" id="themeToggle">
+                <i class="fas fa-moon" id="themeIcon"></i>
+                <span id="themeText">Light</span>
+            </button>
+            <h1> SPHEAL Team Seven Shiny Wars Analytics</h1>
+            <p>Comprehensive player performance dashboard</p>
+        </div>
+
+        <!-- Overall Stats -->
+        <div class="stats-grid" id="overallStats">
+            <!-- Stats will be dynamically generated -->
+        </div>
+
+        <!-- Interactive Chart Section -->
+        <div class="chart-section">
+            <div class="chart-controls">
+                <h2><i class="fas fa-bar-chart"></i> Player Comparison</h2>
+                <select class="field-selector" id="fieldSelector">
+                    <!-- Options will be dynamically generated -->
+                </select>
+                <div class="sort-controls">
+                    <button class="sort-btn active" id="sortDesc">
+                        <i class="fas fa-sort-amount-down"></i> High to Low
+                    </button>
+                    <button class="sort-btn" id="sortAsc">
+                        <i class="fas fa-sort-amount-up"></i> Low to High
+                    </button>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="playerChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Player Performance Cards -->
+        <div class="players-section">
+            <h2><i class="fas fa-users"></i> Player Performance Cards</h2>
+            <div class="players-grid" id="playersGrid">
+                <!-- Player cards will be dynamically generated -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data from JSON file
+        const playersData = [
+            {
+                "Username": "Shine",
+                "Total Hours": 407,
+                "Total Encounters": 288142,
+                "Total Shinies": 12,
+                "Total Egg Shinies": 1,
+                "Total Eggs": 30829,
+                "Total Fossils": 3831,
+                "Total Alphas": 134,
+                "Total Myst Balls": 0,
+                "Total Shiny Charms popped": 475,
+                "Total Money Spent": 550000000
+            },
+            {
+                "Username": "Jackson",
+                "Total Hours": 367,
+                "Total Encounters": 225593,
+                "Total Shinies": 10,
+                "Total Egg Shinies": 0,
+                "Total Eggs": 17550,
+                "Total Fossils": 3542,
+                "Total Alphas": 553,
+                "Total Myst Balls": 0,
+                "Total Shiny Charms popped": 150,
+                "Total Money Spent": 200000000
+            },
+            {
+                "Username": "Skiddy",
+                "Total Hours": 446,
+                "Total Encounters": 276832,
+                "Total Shinies": 11,
+                "Total Egg Shinies": 0,
+                "Total Eggs": 35644,
+                "Total Fossils": 746,
+                "Total Alphas": 919,
+                "Total Myst Balls": 0,
+                "Total Shiny Charms popped": 144,
+                "Total Money Spent": 360000000
+            },
+            {
+                "Username": "Kiwi",
+                "Total Hours": 422,
+                "Total Encounters": 262000,
+                "Total Shinies": 7,
+                "Total Egg Shinies": 3,
+                "Total Eggs": 31400,
+                "Total Fossils": 7878,
+                "Total Alphas": 5,
+                "Total Myst Balls": 356,
+                "Total Shiny Charms popped": 0,
+                "Total Money Spent": 550000000
+            },
+            {
+                "Username": "Apocalyptc",
+                "Total Hours": 425,
+                "Total Encounters": 328813,
+                "Total Shinies": 10,
+                "Total Egg Shinies": 0,
+                "Total Eggs": 11443,
+                "Total Fossils": 400,
+                "Total Alphas": 0,
+                "Total Myst Balls": 0,
+                "Total Shiny Charms popped": 200,
+                "Total Money Spent": 40000000
+            },
+            {
+                "Username": "King",
+                "Total Hours": 380,
+                "Total Encounters": 237330,
+                "Total Shinies": 9,
+                "Total Egg Shinies": 0,
+                "Total Eggs": 14638,
+                "Total Fossils": 5825,
+                "Total Alphas": 9726,
+                "Total Myst Balls": 1870,
+                "Total Shiny Charms popped": 215,
+                "Total Money Spent": 1100000000
+            },
+            {
+                "Username": "Psycho",
+                "Total Hours": 415,
+                "Total Encounters": 296105,
+                "Total Shinies": 9,
+                "Total Egg Shinies": 1,
+                "Total Eggs": 40285,
+                "Total Fossils": 0,
+                "Total Alphas": 0,
+                "Total Myst Balls": 0,
+                "Total Shiny Charms popped": 248,
+                "Total Money Spent": 340000000
+            },
+            {
+                "Username": "Burc",
+                "Total Hours": 438,
+                "Total Encounters": 268416,
+                "Total Shinies": 17,
+                "Total Egg Shinies": 4,
+                "Total Eggs": 39463,
+                "Total Fossils": 0,
+                "Total Alphas": 0,
+                "Total Myst Balls": 0,
+                "Total Shiny Charms popped": 0,
+                "Total Money Spent": 230000000
+            },
+            {
+                "Username": "Worvik",
+                "Total Hours": 455,
+                "Total Encounters": 286975,
+                "Total Shinies": 11,
+                "Total Egg Shinies": 1,
+                "Total Eggs": 38591,
+                "Total Fossils": 13947,
+                "Total Alphas": 0,
+                "Total Myst Balls": 0,
+                "Total Shiny Charms popped": 420,
+                "Total Money Spent": 624043500
+            },
+            {
+                "Username": "Mistaike",
+                "Total Hours": 478,
+                "Total Encounters": 451648,
+                "Total Shinies": 20,
+                "Total Egg Shinies": 0,
+                "Total Eggs": 4375,
+                "Total Fossils": 0,
+                "Total Alphas": 0,
+                "Total Myst Balls": 0,
+                "Total Shiny Charms popped": 120,
+                "Total Money Spent": 45000000
+            },
+            {
+                "Username": "Chicken",
+                "Total Hours": 483,
+                "Total Encounters": 358486,
+                "Total Shinies": 15,
+                "Total Egg Shinies": 0,
+                "Total Eggs": 29797,
+                "Total Fossils": 32,
+                "Total Alphas": 1473,
+                "Total Myst Balls": 0,
+                "Total Shiny Charms popped": 150,
+                "Total Money Spent": 400000000
+            },
+            {
+                "Username": "messi",
+                "Total Hours": 449,
+                "Total Encounters": 322091,
+                "Total Shinies": 13,
+                "Total Egg Shinies": 2,
+                "Total Eggs": 26257,
+                "Total Fossils": 0,
+                "Total Alphas": 684,
+                "Total Myst Balls": 0,
+                "Total Shiny Charms popped": 200,
+                "Total Money Spent": 180000000
+            },
+            {
+                "Username": "Knew",
+                "Total Hours": 399,
+                "Total Encounters": 285846,
+                "Total Shinies": 8,
+                "Total Egg Shinies": 0,
+                "Total Eggs": 4479,
+                "Total Fossils": 277,
+                "Total Alphas": 443,
+                "Total Myst Balls": 0,
+                "Total Shiny Charms popped": 0,
+                "Total Money Spent": 40000000
+            },
+            {
+                "Username": "Noah",
+                "Total Hours": 368,
+                "Total Encounters": 251219,
+                "Total Shinies": 8,
+                "Total Egg Shinies": 0,
+                "Total Eggs": 19738,
+                "Total Fossils": 1027,
+                "Total Alphas": 2180,
+                "Total Myst Balls": 1,
+                "Total Shiny Charms popped": 320,
+                "Total Money Spent": 200000000
+            },
+            {
+                "Username": "Shinycarp",
+                "Total Hours": 419,
+                "Total Encounters": 270000,
+                "Total Shinies": 24,
+                "Total Egg Shinies": 3,
+                "Total Eggs": 23000,
+                "Total Fossils": 741,
+                "Total Alphas": 33,
+                "Total Myst Balls": 0,
+                "Total Shiny Charms popped": 90,
+                "Total Money Spent": 40000000
+            },
+            {
+                "Username": "Clue",
+                "Total Hours": 484,
+                "Total Encounters": 226213,
+                "Total Shinies": 9,
+                "Total Egg Shinies": 0,
+                "Total Eggs": 34288,
+                "Total Fossils": 1578,
+                "Total Alphas": 34288,
+                "Total Myst Balls": 0,
+                "Total Shiny Charms popped": 482,
+                "Total Money Spent": 961534000
+            },
+            {
+                "Username": "xCalDunkin",
+                "Total Hours": 411,
+                "Total Encounters": 241719,
+                "Total Shinies": 6,
+                "Total Egg Shinies": 1,
+                "Total Eggs": 30093,
+                "Total Fossils": 0,
+                "Total Alphas": 0,
+                "Total Myst Balls": 0,
+                "Total Shiny Charms popped": 280,
+                "Total Money Spent": 0
+            },
+            {
+                "Username": "GingerMatt",
+                "Total Hours": 447,
+                "Total Encounters": 306388,
+                "Total Shinies": 11,
+                "Total Egg Shinies": 1,
+                "Total Eggs": 25109,
+                "Total Fossils": 3599,
+                "Total Alphas": 35,
+                "Total Myst Balls": 0,
+                "Total Shiny Charms popped": 0,
+                "Total Money Spent": 190000000
+            },
+            {
+                "Username": "Stark",
+                "Total Hours": 444,
+                "Total Encounters": 272899,
+                "Total Shinies": 14,
+                "Total Egg Shinies": 2,
+                "Total Eggs": 30000,
+                "Total Fossils": 2413,
+                "Total Alphas": 923,
+                "Total Myst Balls": 0,
+                "Total Shiny Charms popped": 444,
+                "Total Money Spent": 450000000
+            },
+            {
+                "Username": "Pairel",
+                "Total Hours": 327,
+                "Total Encounters": 296800,
+                "Total Shinies": 9,
+                "Total Egg Shinies": 0,
+                "Total Eggs": 19171,
+                "Total Fossils": 0,
+                "Total Alphas": 160,
+                "Total Myst Balls": 0,
+                "Total Shiny Charms popped": 264,
+                "Total Money Spent": 158180000
+            },
+            {
+                "Username": "Totes",
+                "Total Hours": 400,
+                "Total Encounters": 215140,
+                "Total Shinies": 12,
+                "Total Egg Shinies": 1,
+                "Total Eggs": 14489,
+                "Total Fossils": 6204,
+                "Total Alphas": 476,
+                "Total Myst Balls": 403,
+                "Total Shiny Charms popped": 107,
+                "Total Money Spent": 450000000
+            },
+            {
+                "Username": "funz",
+                "Total Hours": 328,
+                "Total Encounters": 215557,
+                "Total Shinies": 10,
+                "Total Egg Shinies": 2,
+                "Total Eggs": 16062,
+                "Total Fossils": 400,
+                "Total Alphas": 0,
+                "Total Myst Balls": 0,
+                "Total Shiny Charms popped": 0,
+                "Total Money Spent": 180000000
+            },
+            {
+                "Username": "Fongus",
+                "Total Hours": 462,
+                "Total Encounters": 315656,
+                "Total Shinies": 11,
+                "Total Egg Shinies": 1,
+                "Total Eggs": 27466,
+                "Total Fossils": 0,
+                "Total Alphas": 0,
+                "Total Myst Balls": 0,
+                "Total Shiny Charms popped": 177,
+                "Total Money Spent": 180000000
+            },
+            {
+                "Username": "Rizz",
+                "Total Hours": 404,
+                "Total Encounters": 337648,
+                "Total Shinies": 17,
+                "Total Egg Shinies": 0,
+                "Total Eggs": 6961,
+                "Total Fossils": 0,
+                "Total Alphas": 0,
+                "Total Myst Balls": 0,
+                "Total Shiny Charms popped": 0,
+                "Total Money Spent": 60000000
+            },
+            {
+                "Username": "Charizard",
+                "Total Hours": 453,
+                "Total Encounters": 229870,
+                "Total Shinies": 8,
+                "Total Egg Shinies": 1,
+                "Total Eggs": 28027,
+                "Total Fossils": 4996,
+                "Total Alphas": 2502,
+                "Total Myst Balls": 0,
+                "Total Shiny Charms popped": 250,
+                "Total Money Spent": 375000000
+            },
+            {
+                "Username": "Pookie",
+                "Total Hours": 466,
+                "Total Encounters": 342473,
+                "Total Shinies": 16,
+                "Total Egg Shinies": 1,
+                "Total Eggs": 34471,
+                "Total Fossils": 10115,
+                "Total Alphas": 2769,
+                "Total Myst Balls": 13,
+                "Total Shiny Charms popped": 430,
+                "Total Money Spent": 275000000
+            },
+            {
+                "Username": "Essence",
+                "Total Hours": 342,
+                "Total Encounters": 210273,
+                "Total Shinies": 20,
+                "Total Egg Shinies": 4,
+                "Total Eggs": 17515,
+                "Total Fossils": 2184,
+                "Total Alphas": 640,
+                "Total Myst Balls": 0,
+                "Total Shiny Charms popped": 0,
+                "Total Money Spent": 130000000
+            },
+            {
+                "Username": "Howdy",
+                "Total Hours": 373,
+                "Total Encounters": 218750,
+                "Total Shinies": 7,
+                "Total Egg Shinies": 0,
+                "Total Eggs": 12460,
+                "Total Fossils": 6750,
+                "Total Alphas": 2650,
+                "Total Myst Balls": 0,
+                "Total Shiny Charms popped": 0,
+                "Total Money Spent": 130000000
+            },
+            {
+                "Username": "Karoshi",
+                "Total Hours": 479,
+                "Total Encounters": 272938,
+                "Total Shinies": 15,
+                "Total Egg Shinies": 0,
+                "Total Eggs": 41836,
+                "Total Fossils": 3046,
+                "Total Alphas": 644,
+                "Total Myst Balls": 5,
+                "Total Shiny Charms popped": 300,
+                "Total Money Spent": 300000000
+            }
+        ];
+
+        // Field mappings for better display names and icons
+        const fieldMappings = {
+            "Total Hours": { icon: "fas fa-clock", name: "Total Hours" },
+            "Total Encounters": { icon: "fas fa-search", name: "Total Encounters" },
+            "Total Shinies": { icon: "fas fa-star", name: "Total Shinies" },
+            "Total Egg Shinies": { icon: "fas fa-egg", name: "Egg Shinies" },
+            "Total Eggs": { icon: "fas fa-explosion", name: "Total Eggs" },
+            "Total Fossils": { icon: "fas fa-bone", name: "Total Fossils" },
+            "Total Alphas": { icon: "fas fa-crown", name: "Total Alphas" },
+            "Total Myst Balls": { icon: "fas fa-circle", name: "Myst Balls" },
+            "Total Shiny Charms popped": { icon: "fas fa-gem", name: "Shiny Charms" },
+            "Total Money Spent": { icon: "fas fa-dollar-sign", name: "Money Spent" }
+        };
+
+        // Chart-only fields (available in dropdown but not in overview stats)
+        const chartOnlyFields = {
+            "Shiny Average": { icon: "fas fa-calculator", name: "Shiny Average" }
+        };
+
+        // Additional calculated stats for overall display only
+        const calculatedStats = {
+            "Team Shiny Average": { icon: "fas fa-calculator", name: "Team Shiny Average" },
+            "Team Egg Average": { icon: "fas fa-chart-bar", name: "Team Egg Average" }
+        };
+
+        let currentChart = null;
+        let currentField = 'Total Shinies';
+        let isDescending = true;
+
+        // Format large numbers
+        function formatNumber(num) {
+            if (num >= 1000000000) {
+                return (num / 1000000000).toFixed(1) + 'B';
+            } else if (num >= 1000000) {
+                return (num / 1000000).toFixed(1) + 'M';
+            } else if (num >= 1000) {
+                return (num / 1000).toFixed(1) + 'K';
+            }
+            return num.toString();
+        }
+
+        // Calculate totals for overall stats
+        function calculateTotals() {
+            const totals = {};
+            const fields = Object.keys(fieldMappings);
+            
+            fields.forEach(field => {
+                totals[field] = playersData.reduce((sum, player) => sum + player[field], 0);
+            });
+            
+            // Calculate team averages
+            totals["Team Shiny Average"] = totals["Total Shinies"] > 0 ? 
+                Math.round(totals["Total Encounters"] / totals["Total Shinies"]) : 0;
+            totals["Team Egg Average"] = totals["Total Egg Shinies"] > 0 ? 
+                Math.round(totals["Total Eggs"] / totals["Total Egg Shinies"]) : 0;
+            
+            return totals;
+        }
+
+        // Generate overall stats cards
+        function generateOverallStats() {
+            const totals = calculateTotals();
+            const statsContainer = document.getElementById('overallStats');
+            statsContainer.innerHTML = '';
+            
+            // Add regular field stats
+            Object.entries(fieldMappings).forEach(([field, config]) => {
+                const statCard = document.createElement('div');
+                statCard.className = 'stat-card fade-in';
+                statCard.innerHTML = `
+                    <div class="icon">
+                        <i class="${config.icon}"></i>
+                    </div>
+                    <div class="value">${formatNumber(totals[field])}</div>
+                    <div class="label">${config.name}</div>
+                `;
+                statsContainer.appendChild(statCard);
+            });
+            
+            // Add calculated stats
+            Object.entries(calculatedStats).forEach(([field, config]) => {
+                const statCard = document.createElement('div');
+                statCard.className = 'stat-card fade-in';
+                statCard.innerHTML = `
+                    <div class="icon">
+                        <i class="${config.icon}"></i>
+                    </div>
+                    <div class="value">${formatNumber(totals[field])}</div>
+                    <div class="label">${config.name}</div>
+                `;
+                statsContainer.appendChild(statCard);
+            });
+        }
+
+        // Generate field selector options
+        function generateFieldSelector() {
+            const selector = document.getElementById('fieldSelector');
+            selector.innerHTML = '';
+            
+            // Add regular fields
+            Object.entries(fieldMappings).forEach(([field, config]) => {
+                const option = document.createElement('option');
+                option.value = field;
+                option.textContent = config.name;
+                if (field === currentField) option.selected = true;
+                selector.appendChild(option);
+            });
+            
+            // Add chart-only fields
+            Object.entries(chartOnlyFields).forEach(([field, config]) => {
+                const option = document.createElement('option');
+                option.value = field;
+                option.textContent = config.name;
+                if (field === currentField) option.selected = true;
+                selector.appendChild(option);
+            });
+        }
+
+        // Generate and update chart
+        function updateChart() {
+            let dataToSort;
+            
+            // Handle calculated fields like Shiny Average
+            if (currentField === 'Shiny Average') {
+                dataToSort = playersData.map(player => ({
+                    ...player,
+                    'Shiny Average': player['Total Shinies'] > 0 ? 
+                        Math.round(player['Total Encounters'] / player['Total Shinies']) : 0
+                }));
+            } else {
+                dataToSort = [...playersData];
+            }
+            
+            const sortedData = dataToSort.sort((a, b) => {
+                return isDescending ? b[currentField] - a[currentField] : a[currentField] - b[currentField];
+            });
+
+            const labels = sortedData.map(player => player.Username);
+            const data = sortedData.map(player => player[currentField]);
+
+            // Generate colors for bars
+            const colors = labels.map((_, index) => {
+                const hue = (index * 360 / labels.length) % 360;
+                return `hsla(${hue}, 70%, 60%, 0.8)`;
+            });
+
+            const ctx = document.getElementById('playerChart').getContext('2d');
+
+            if (currentChart) {
+                currentChart.destroy();
+            }
+
+            currentChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                                                 label: (fieldMappings[currentField] || chartOnlyFields[currentField]).name,
+                        data: data,
+                        backgroundColor: colors,
+                        borderColor: colors.map(color => color.replace('0.8', '1')),
+                        borderWidth: 2,
+                        borderRadius: 8,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: 'white',
+                            bodyColor: 'white',
+                            borderColor: 'rgba(255, 255, 255, 0.2)',
+                            borderWidth: 1,
+                            cornerRadius: 10,
+                            callbacks: {
+                                label: function(context) {
+                                    let value = context.parsed.y;
+                                    if (currentField === 'Total Money Spent') {
+                                        value = '$' + formatNumber(value);
+                                    } else {
+                                        value = formatNumber(value);
+                                    }
+                                                                         return `${(fieldMappings[currentField] || chartOnlyFields[currentField]).name}: ${value}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: getComputedStyle(document.documentElement).getPropertyValue('--chart-grid').trim()
+                            },
+                            ticks: {
+                                color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim(),
+                                callback: function(value) {
+                                    return formatNumber(value);
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45,
+                                color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim()
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeInOutQuart'
+                    }
+                }
+            });
+        }
+
+        // Generate player cards
+        function generatePlayerCards() {
+            const playersGrid = document.getElementById('playersGrid');
+            playersGrid.innerHTML = '';
+
+            // Sort players by total shinies for display order
+            const sortedPlayers = [...playersData].sort((a, b) => b['Total Shinies'] - a['Total Shinies']);
+
+            sortedPlayers.forEach(player => {
+                const playerCard = document.createElement('div');
+                playerCard.className = 'player-card fade-in';
+                
+                const playerInitial = player.Username.charAt(0).toUpperCase();
+                
+                                 // Calculate shiny average for this player
+                 const shinyAverage = player['Total Shinies'] > 0 ? 
+                     Math.round(player['Total Encounters'] / player['Total Shinies']) : 0;
+                 
+                 playerCard.innerHTML = `
+                     <div class="player-header">
+                         <div class="player-name">${player.Username}</div>
+                     </div>
+                     <div class="player-stats">
+                         <div class="player-stat highlight-stat">
+                             <span class="stat-name">⭐ Total Shinies</span>
+                             <span class="stat-value">${player['Total Shinies']}</span>
+                         </div>
+                         <div class="player-stat highlight-stat">
+                             <span class="stat-name">📊 Shiny Average</span>
+                             <span class="stat-value">${formatNumber(shinyAverage)}</span>
+                         </div>
+                         <div class="player-stat">
+                             <span class="stat-name">⏰ Hours Played</span>
+                             <span class="stat-value">${formatNumber(player['Total Hours'])}</span>
+                         </div>
+                         <div class="player-stat">
+                             <span class="stat-name">🔍 Encounters</span>
+                             <span class="stat-value">${formatNumber(player['Total Encounters'])}</span>
+                         </div>
+                         <div class="player-stat">
+                             <span class="stat-name">🥚 Egg Shinies</span>
+                             <span class="stat-value">${player['Total Egg Shinies']}</span>
+                         </div>
+                         <div class="player-stat">
+                             <span class="stat-name">⚪ Total Eggs</span>
+                             <span class="stat-value">${formatNumber(player['Total Eggs'])}</span>
+                         </div>
+                         <div class="player-stat">
+                             <span class="stat-name">🦴 Fossils</span>
+                             <span class="stat-value">${formatNumber(player['Total Fossils'])}</span>
+                         </div>
+                         <div class="player-stat">
+                             <span class="stat-name">👑 Alphas</span>
+                             <span class="stat-value">${formatNumber(player['Total Alphas'])}</span>
+                         </div>
+                         <div class="player-stat">
+                             <span class="stat-name">⚪ Myst Balls</span>
+                             <span class="stat-value">${formatNumber(player['Total Myst Balls'])}</span>
+                         </div>
+                         <div class="player-stat">
+                             <span class="stat-name">💎 Shiny Charms</span>
+                             <span class="stat-value">${formatNumber(player['Total Shiny Charms popped'])}</span>
+                         </div>
+                         <div class="player-stat">
+                             <span class="stat-name">💰 Money Spent</span>
+                             <span class="stat-value">$${formatNumber(player['Total Money Spent'])}</span>
+                         </div>
+                     </div>
+                 `;
+                
+                playersGrid.appendChild(playerCard);
+            });
+        }
+
+        // Event listeners
+        document.getElementById('fieldSelector').addEventListener('change', function() {
+            currentField = this.value;
+            updateChart();
+        });
+
+        document.getElementById('sortDesc').addEventListener('click', function() {
+            isDescending = true;
+            document.getElementById('sortDesc').classList.add('active');
+            document.getElementById('sortAsc').classList.remove('active');
+            updateChart();
+        });
+
+        document.getElementById('sortAsc').addEventListener('click', function() {
+            isDescending = false;
+            document.getElementById('sortAsc').classList.add('active');
+            document.getElementById('sortDesc').classList.remove('active');
+            updateChart();
+        });
+
+        // Theme Management
+        function initializeTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            const themeToggle = document.getElementById('themeToggle');
+            const themeIcon = document.getElementById('themeIcon');
+            const themeText = document.getElementById('themeText');
+            
+            // Set initial theme
+            setTheme(savedTheme);
+            
+            // Theme toggle event listener
+            themeToggle.addEventListener('click', () => {
+                const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                setTheme(newTheme);
+                localStorage.setItem('theme', newTheme);
+            });
+            
+            function setTheme(theme) {
+                document.documentElement.setAttribute('data-theme', theme);
+                
+                if (theme === 'light') {
+                    themeIcon.className = 'fas fa-sun';
+                    themeText.textContent = 'Dark';
+                } else {
+                    themeIcon.className = 'fas fa-moon';
+                    themeText.textContent = 'Light';
+                }
+                
+                // Update chart colors if chart exists
+                if (currentChart) {
+                    const gridColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-grid').trim();
+                    const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim();
+                    
+                    currentChart.options.scales.y.grid.color = gridColor;
+                    currentChart.options.scales.y.ticks.color = textColor;
+                    currentChart.options.scales.x.ticks.color = textColor;
+                    currentChart.update('none');
+                }
+            }
+        }
+
+        // Initialize dashboard
+        function initializeDashboard() {
+            initializeTheme();
+            generateOverallStats();
+            generateFieldSelector();
+            updateChart();
+            generatePlayerCards();
+        }
+
+        // Start the dashboard when page loads
+        document.addEventListener('DOMContentLoaded', initializeDashboard);
+    </script>
+</body>
+</html>
